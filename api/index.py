@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
-from parser import MUResultParser
+from mu_parser import MUResultParser
 
 app = FastAPI(
     title="MU Result Parser API",
