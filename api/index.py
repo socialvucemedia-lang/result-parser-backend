@@ -23,7 +23,10 @@ app = FastAPI(
 # Allow CORS from your Next.js domain
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your actual domain in production
+    allow_origins=[
+        "http://localhost:3000",
+        "https://muresults.vuce.in"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
