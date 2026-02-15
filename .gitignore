@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pdf
+*.json
+!vercel.json
+venv/
+ENV/
+.vercel
