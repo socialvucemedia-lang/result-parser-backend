@@ -9,7 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # Import the parser
-from .parser import MUResultParser
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
+from parser import MUResultParser
 
 app = FastAPI(
     title="MU Result Parser API",
