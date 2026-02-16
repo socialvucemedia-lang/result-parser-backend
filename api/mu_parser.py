@@ -244,7 +244,10 @@ def parse_component_line(line: str, prefix: str) -> list:
     Parse T1, O1, E1, I1 component rows to extract marks.
     
     E1 lines can have: 23 @3 P (grace marks)
-    E1/I1 can have: 0 F 0.0 (failed with grade info)
+    E1/I1 lines have grade info after marks: <mark> <GP> <Grade> <CreditPoints>
+      e.g.: "22 0 F 0.0" means mark=22, GP=0, grade=F, credits=0.0
+      e.g.: "19 P" means mark=19, passed (no GP/credits shown)
+    The GP value (e.g., the 0) must NOT be extracted as a separate mark.
     """
     content = re.sub(f'^{prefix}\\s+', '', line.strip())
     
@@ -261,7 +264,7 @@ def parse_component_line(line: str, prefix: str) -> list:
     while i < len(tokens):
         token = tokens[i]
         
-        # Skip non-numeric tokens
+        # Skip standalone P/F (grade indicators NOT following a number)
         if token in ('P', 'F', '...'):
             i += 1
             continue
@@ -286,7 +289,28 @@ def parse_component_line(line: str, prefix: str) -> list:
                     pass
                 i += 1
             
+            # Append the actual mark
             marks.append(mark)
+            
+            # Now skip any trailing grade notation after this mark:
+            # Pattern 1: <mark> P  (passed, just skip P)
+            # Pattern 2: <mark> <GP> <Grade> [<CreditPoints>]  (e.g., "22 0 F 0.0")
+            # We need to check if next token is a GP value (number followed by F/P)
+            
+            # First, skip direct P/F after the mark (e.g., "19 P")
+            if i < len(tokens) and tokens[i] in ('F', 'P'):
+                i += 1
+                # Skip optional decimal credit points after grade
+                if i < len(tokens) and re.match(r'^\d+\.\d+$', tokens[i]):
+                    i += 1
+            # Check if the next number is a GP value (followed by F/P grade)
+            elif (i < len(tokens) and re.match(r'^\d+$', tokens[i]) and
+                  i + 1 < len(tokens) and tokens[i + 1] in ('F', 'P')):
+                # This is a GP value, not a mark — skip GP, Grade, and optional CreditPoints
+                i += 1  # skip GP
+                i += 1  # skip Grade (F/P)
+                if i < len(tokens) and re.match(r'^\d+\.\d+$', tokens[i]):
+                    i += 1  # skip credit points decimal
         else:
             i += 1
     
@@ -562,12 +586,20 @@ class MUResultParser:
             stripped = line.strip()
             if stripped.startswith('T1 '):
                 t1_marks = parse_component_line(stripped, 'T1')
+                # T1 should have at most 8 values (subjects with term work)
+                t1_marks = t1_marks[:8]
             elif stripped.startswith('O1 '):
                 o1_marks = parse_component_line(stripped, 'O1')
+                # O1 should have at most 3 values (subjects with oral)
+                o1_marks = o1_marks[:3]
             elif stripped.startswith('E1 '):
                 e1_marks = parse_component_line(stripped, 'E1')
+                # E1 should have at most 6 values (subjects with external exams)
+                e1_marks = e1_marks[:6]
             elif stripped.startswith('I1 '):
                 i1_marks = parse_component_line(stripped, 'I1')
+                # I1 should have at most 7 values (subjects with internal exams)
+                i1_marks = i1_marks[:7]
             elif stripped.startswith('TOT '):
                 tot_data, sgpa = parse_tot_line(stripped)
         
